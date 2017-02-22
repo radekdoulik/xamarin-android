@@ -599,6 +599,46 @@
         </Compile>
    </ItemGroup>
   <Import Project="$(OutputPath)\..\..\..\xbuild\Xamarin\Android\Xamarin.Android.CSharp.targets" />
+  <PropertyGroup>
+    <OpenTKAssembly>$(OutputPath)$(AssemblyName).dll</OpenTKAssembly>
+    <OpenTKAssembly Condition="!Exists('$(OpenTKAssembly)')">..\..\bin\$(Configuration)\lib\xbuild-frameworks\MonoAndroid\$(AndroidLatestFrameworkVersion)\$(AssemblyName).dll</OpenTKAssembly>
+  </PropertyGroup>
+  <Target Name="_GenerateOpenTKJavaCallableWrappers"
+      Inputs="$(OpenTKAssembly)"
+      Outputs="$(OutputPath)mono.android.jar">
+    <MakeDir Directories="$(IntermediateOutputPath)jcw;$(IntermediateOutputPath)jcw\bin" />
+    <PropertyGroup>
+      <OutputPathAbs>$(MSBuildProjectDirectory)\$(OutputPath)</OutputPathAbs>
+      <JcwGen>"$(JavaInteropFullPath)\bin\$(Configuration)\jcw-gen.exe" -v10</JcwGen>
+      <_LibDirs>-L "$(OutputPathAbs)" -L "$(OutputPathAbs)..\v1.0\" -L "$(OutputPathAbs)..\v1.0\Facades"</_LibDirs>
+      <_Out>-o "$(MSBuildProjectDirectory)\$(IntermediateOutputPath)jcw\src"</_Out>
+    </PropertyGroup>
+    <Exec
+        Command="$(ManagedRuntime) $(ManagedRuntimeArgs) $(JcwGen) $(_Out) $(_LibDirs) &quot;$(OpenTKAssembly)&quot;"
+    />
+    <ItemGroup>
+      <_JavaSources Include="$(IntermediateOutputPath)jcw\src\**\*.java" />
+    </ItemGroup>
+    <WriteLinesToFile
+        File="$(IntermediateOutputPath)jcw\classes.txt"
+        Lines="@(_CommonJavaSources);@(_JavaSources)"
+        Overwrite="True"
+    />
+    <PropertyGroup>
+      <JavacSourceVersion Condition=" '$(JavacSourceVersion)' == '' And '$(AndroidApiLevel)' != '' And $(AndroidApiLevel) &gt; 23 ">1.8</JavacSourceVersion>
+      <JavacSourceVersion Condition=" '$(JavacSourceVersion)' == '' ">1.6</JavacSourceVersion>
+      <_Target>-source $(JavacSourceVersion) -target $(JavacSourceVersion)</_Target>
+      <_D>-d "$(IntermediateOutputPath)jcw\bin"</_D>
+      <_AndroidJar>"$(AndroidToolchainDirectory)\sdk\platforms\android-$(AndroidApiLevel)\android.jar"</_AndroidJar>
+      <_MonoAndroidJar>"$(OutputPath)mono.android.jar"</_MonoAndroidJar>
+    </PropertyGroup>
+    <Exec
+        Command="javac $(_Target) $(_D) -bootclasspath $(_AndroidJar):$(_MonoAndroidJar) @$(IntermediateOutputPath)jcw\classes.txt"
+    />
+    <Exec
+        Command="jar uf $(_MonoAndroidJar) -C &quot;$(IntermediateOutputPath)jcw\bin&quot; ."
+    />
+  </Target>
   <ItemGroup>
     <ProjectReference Include="..\Mono.Android\Mono.Android.csproj">
       <Project>{66CF299A-CE95-4131-BCD8-DB66E30C4BF7}</Project>
