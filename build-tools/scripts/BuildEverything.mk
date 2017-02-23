@@ -97,6 +97,7 @@ $(RUNTIME_LIBRARIES):
 opentk-jcw:
 	$(foreach a, $(API_LEVELS), \
 		$(foreach conf, $(CONFIGURATIONS), \
+			touch bin/$(conf)/lib/xbuild-frameworks/MonoAndroid/*/OpenTK-1.0.dll; \
 			$(MSBUILD) $(MSBUILD_FLAGS) src/OpenTK-1.0/OpenTK.csproj /t:_GenerateOpenTKJavaCallableWrappers /p:Configuration=$(conf) $(_MSBUILD_ARGS) /p:AndroidFrameworkVersion=$(word $(a), $(ALL_FRAMEWORKS)); ))
 
 _BUNDLE_ZIPS_INCLUDE  = \
